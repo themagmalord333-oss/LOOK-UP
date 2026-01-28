@@ -8,14 +8,12 @@ from pyrogram.errors import UserNotParticipant, PeerIdInvalid, ChannelInvalid
 API_ID = 37314366
 API_HASH = "bd4c934697e7e91942ac911a5a287b46"
 
-# 🆕 UPDATED SESSION STRING
-SESSION_STRING = "BQI5Xz4AUG3TwVC1nvy0ghNNJhUM6odngCwm7I87fuG0U_H-DWP9pCIDxrmR054NQI92QnJphOWhxF5ygOxrMyJNPynbcFPkAMk__FBB_p2C1qv8uWS3Qag0eK4pX_ARmd-3_F8NRa8HzKQR-8X1Evxshc94ZiJGq06NBRMOSap5gWicKoXm_T-euYOAAiP_-5TPJbzzkkW_oX9dDZIqwZaXKUHZ8BSVd77UK9xTLyhCV6xbcpVbViPAAI0QSg5tYJhBRyHM1NFKh0Phj3BVXLrcMuGJhJGf8j8o3zUPcQnk7jisjtUIRsPOpbNBk9oDtY5w7_DXChG2Jmic07zMU-ggyVBr5wAAAAGc59H6AA"
+# 🆕 UPDATED SESSION STRING (Latest)
+SESSION_STRING = "BQI5Xz4AHIkHeSrQk6jDbfDxUoF9ONiS7_Y5HvxGrY87u8oM05ohbCcjwv-amgHYhrMIkbyoLouCFE8kXiW3T56y5XPUOBSrDjtD2QKWb0Gw_pnRJ4Q94wwcAbRdm7HoXLUjco041wzNI3C-EZeNmnwpaInFAfE85jWYhN3yJxsGcN-OGsem-LY2-2uy0Jp6vK_5km9Pa3MNO4trVK4KRGP6I9M2ecOxF6Db4Ip2Jx5eGFZHOF20y0WcXKm188SqUg36TwgtOWuHYAi_wNQiPLi1rkkDiNfOsgobLcA5b5zOODiYFwsHYprxxqsjOETS6H4uXlgLsehAkFFjrH_4uUaEyOQyrwAAAAGc59H6AA"
 
-# 🎯 TARGET SETTINGS (As per screenshot)
+# 🎯 TARGET SETTINGS
 TARGET_BOT_USERNAME = "DeepTraceXBot"
-SEARCH_GROUP_ID = -1003426835879  # Correct ID from Screenshot
-
-NEW_FOOTER = "⚡ Designed & Powered by @MAGMAxRICH"
+SEARCH_GROUP_ID = -1003426835879 
 
 # --- 🔐 SECURITY SETTINGS ---
 ALLOWED_GROUPS = [-1003387459132] 
@@ -102,7 +100,6 @@ async def process_request(client, message):
     
     # --- 🛡️ ACCESS CHECK ---
     try:
-        # Check if the Session User is actually in the group
         await client.get_chat(SEARCH_GROUP_ID)
     except (PeerIdInvalid, ChannelInvalid):
         await status_msg.edit(
@@ -125,10 +122,8 @@ async def process_request(client, message):
         for attempt in range(20): 
             await asyncio.sleep(2.5) 
             
-            # Check last 5 messages in group for a reply
             async for log in client.get_chat_history(SEARCH_GROUP_ID, limit=5):
                 if log.from_user and log.from_user.username == TARGET_BOT_USERNAME:
-                    # Match reply ID
                     if log.reply_to_message_id == sent_req.id:
                         
                         text_content = (log.text or log.caption or "").lower()
@@ -164,27 +159,34 @@ async def process_request(client, message):
             await status_msg.edit("❌ **No Data Found**")
             return
 
-        # --- Branding & Cleaning ---
+        # --- 🧹 CLEANING & FORMATTING ---
         lines = raw_text.splitlines()
-        clean_lines = []
-        for line in lines:
-            if "@" not in line and "Designed & Powered" not in line and "DeepTrace" not in line:
-                clean_lines.append(line)
-            # Whitelist important data lines
-            elif any(k in line for k in ["Name", "Number", "Vehicle", "GST", "IFSC", "Email", "Status", "DOB", "Address"]):
-                clean_lines.append(line)
+        clean_data_list = []
         
-        main_body = "\n".join(clean_lines).strip()
+        for line in lines:
+            line = line.strip()
+            if not line: continue # Skip empty lines
 
-        # --- 🛠️ JSON FORMATTING LOGIC ---
+            # Filter unwanted Bot Credits
+            if "@" in line or "Designed & Powered" in line or "DeepTrace" in line:
+                # But keep valid data fields even if they have weird symbols
+                if not any(k in line for k in ["Name", "Number", "Vehicle", "GST", "IFSC", "Email", "Status", "DOB", "Address", "Mobile"]):
+                    continue
+            
+            # Add valid line to list
+            clean_data_list.append(line)
+
+        # --- 🛠️ JSON FORMATTING (Easy Read Mode) ---
+        # Instead of one big string, we use a List of Strings for clean indentation
         json_data = {
             "status": "success",
             "service": message.command[0],
             "query": " ".join(message.command[1:]),
-            "result": main_body, 
+            "data": clean_data_list,  # This makes it readable line-by-line
             "powered_by": "@MAGMAxRICH"
         }
         
+        # Pretty Print JSON
         final_json_output = f"```json\n{json.dumps(json_data, indent=4, ensure_ascii=False)}\n```"
 
         await status_msg.delete()
@@ -200,5 +202,5 @@ async def process_request(client, message):
     except Exception as e:
         await status_msg.edit(f"❌ **Error:** {str(e)}")
 
-print("🚀 Secure ANYSNAP (Fixed Group ID) is Live!")
+print("🚀 Secure ANYSNAP (Clean JSON Mode) is Live!")
 app.run()
