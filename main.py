@@ -1,14 +1,33 @@
 import os
 import asyncio
 import json
+import threading
+from flask import Flask
 from pyrogram import Client, filters, enums
 from pyrogram.errors import UserNotParticipant, PeerIdInvalid, ChannelInvalid
+
+# --- 🌐 WEB SERVER (Render Ke Liye) ---
+web_app = Flask(__name__)
+
+@web_app.route('/')
+def home():
+    return "Bot is Running 24/7! 🚀"
+
+def run_web():
+    # Render automatically assigns a port via 'PORT' env var
+    port = int(os.environ.get("PORT", 8080))
+    web_app.run(host='0.0.0.0', port=port)
+
+# Start Web Server in Background Thread
+t = threading.Thread(target=run_web)
+t.daemon = True
+t.start()
 
 # --- CONFIGURATION ---
 API_ID = 37314366
 API_HASH = "bd4c934697e7e91942ac911a5a287b46"
 
-# 🆕 UPDATED SESSION STRING (Latest)
+# 🆕 LATEST SESSION STRING
 SESSION_STRING = "BQI5Xz4AHIkHeSrQk6jDbfDxUoF9ONiS7_Y5HvxGrY87u8oM05ohbCcjwv-amgHYhrMIkbyoLouCFE8kXiW3T56y5XPUOBSrDjtD2QKWb0Gw_pnRJ4Q94wwcAbRdm7HoXLUjco041wzNI3C-EZeNmnwpaInFAfE85jWYhN3yJxsGcN-OGsem-LY2-2uy0Jp6vK_5km9Pa3MNO4trVK4KRGP6I9M2ecOxF6Db4Ip2Jx5eGFZHOF20y0WcXKm188SqUg36TwgtOWuHYAi_wNQiPLi1rkkDiNfOsgobLcA5b5zOODiYFwsHYprxxqsjOETS6H4uXlgLsehAkFFjrH_4uUaEyOQyrwAAAAGc59H6AA"
 
 # 🎯 TARGET SETTINGS
@@ -165,28 +184,24 @@ async def process_request(client, message):
         
         for line in lines:
             line = line.strip()
-            if not line: continue # Skip empty lines
+            if not line: continue 
 
-            # Filter unwanted Bot Credits
+            # Remove specific watermarks but keep Data keys
             if "@" in line or "Designed & Powered" in line or "DeepTrace" in line:
-                # But keep valid data fields even if they have weird symbols
                 if not any(k in line for k in ["Name", "Number", "Vehicle", "GST", "IFSC", "Email", "Status", "DOB", "Address", "Mobile"]):
                     continue
             
-            # Add valid line to list
             clean_data_list.append(line)
 
         # --- 🛠️ JSON FORMATTING (Easy Read Mode) ---
-        # Instead of one big string, we use a List of Strings for clean indentation
         json_data = {
             "status": "success",
             "service": message.command[0],
             "query": " ".join(message.command[1:]),
-            "data": clean_data_list,  # This makes it readable line-by-line
+            "data": clean_data_list,  
             "powered_by": "@MAGMAxRICH"
         }
         
-        # Pretty Print JSON
         final_json_output = f"```json\n{json.dumps(json_data, indent=4, ensure_ascii=False)}\n```"
 
         await status_msg.delete()
@@ -202,5 +217,5 @@ async def process_request(client, message):
     except Exception as e:
         await status_msg.edit(f"❌ **Error:** {str(e)}")
 
-print("🚀 Secure ANYSNAP (Clean JSON Mode) is Live!")
+print("🚀 Secure ANYSNAP (Flask + JSON Mode) is Live!")
 app.run()
