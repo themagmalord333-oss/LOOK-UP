@@ -21,8 +21,9 @@ threading.Thread(target=run_web, daemon=True).start()
 # --- CONFIGURATION ---
 API_ID = 37314366
 API_HASH = "bd4c934697e7e91942ac911a5a287b46"
-# Aapka Session String
-SESSION_STRING = "BQI5Xz4ANzYEjiKIML0uMU9tojksdxKz_bCurzC00eBbvDLQZan_bwZtMzXJzHJaybTK_HK1Q6TLbbfGXguF4W_s7gbSZaOESUHERMDJJxk_v3dM_7fbuCyKTP0ajf9NS9sbPYoK2Tiq9s91aJln1vYuQ8YlN3SBgwKcYOwwXTFv_WhWsF4ZnT4GQZEAU6cdudoEQmfTrXAh_plktB1TwrDd57rh5ulwyCW37uJyW_OwqdC1moXgrWzV4mj4Gx6_ghkolzi7AhfUpk_emqjMhBj5x7-sUB5SUwcbdWCqWVKivfu3Wu0uE4EVCcpVHsEycT3HPr-chNqdpjLRTIyD-Euc3w3gkwAAAAFJSgVkAA"
+
+# 🆕 UPDATED SESSION STRING (Jo last generate hui thi)
+SESSION_STRING = "BQI5Xz4AaDFKlxzx_muIPYRzRIyyvWNmtF2NLY6pdaohx8V11Md5_7TPwIW3sT-Tky3rKh6qOh9ARJDsB9ZBK8KstH5EkSAi6wX4edFpThdUKyahCAbjlj7dp9GK5KOR9JNjjxRTIMRxelhkFp7uErgEL86oYPB4NKMknMqol-kzuLathqALqAAEK3woiZn_af73k8dD5wTWoXbZsWu6UJZPfE2EauvJxVhvvx8HY7ojt7YpmCSel-meMxnIzv7gi5AiEveSdT_Kk_3Ntj7h5bxFb_rcEDo0kOvrvFx6ibJeu8XFdJ8U9wD4BmgbiGQlsvghGHj3gY5-t0969-4VEig-3zSl-QAAAAFJSgVkAA"
 
 TARGET_BOT_USERNAME = "Zeroo_osint_bot" 
 SEARCH_GROUP_ID = -1003322045321
@@ -31,29 +32,73 @@ SEARCH_GROUP_USERNAME = "f4x_empirebot"
 ALLOWED_GROUPS = [-1003387459132]
 FSUB_CHANNELS = [{"id": -1003892920891, "link": "https://t.me/+Om1HMs2QTHk1N2Zh"}]
 
+# 👑 OWNER SETTINGS
+OWNER_ID = 8081343902
+STICKER_FILE = "anim_sticker.txt"
+
 app = Client("anysnap_secure_bot", api_id=API_ID, api_hash=API_HASH, session_string=SESSION_STRING)
+
+# --- 👋 START COMMAND (New) ---
+@app.on_message(filters.command("start"))
+async def start_command(client, message):
+    user_id = message.from_user.id
+    name = message.from_user.first_name
+    
+    # Check if user is Owner
+    if user_id == OWNER_ID:
+        await message.reply_text(
+            f"👑 **Welcome Boss {name}!**\n"
+            f"🆔 Your ID: `{user_id}` (Matched)\n\n"
+            f"**🎛️ Owner Commands:**\n"
+            f"🔹 `/setanim` - (Reply to Sticker) Set Waiting Animation\n"
+            f"🔹 `/resetanim` - Reset Animation\n"
+            f"🔹 `/num <number>` - Search Number"
+        )
+    else:
+        # Check FSub for normal users
+        for ch in FSUB_CHANNELS:
+            try: await client.get_chat_member(ch["id"], user_id)
+            except: 
+                return await message.reply_text(f"👋 **Hello {name}!**\n🚫 Access Denied.\nPlease Join: {ch['link']}")
+        
+        await message.reply_text(f"👋 **Hello {name}!**\n🆔 ID: `{user_id}`\n\n✅ Bot is Ready. Use `/num <number>` to search.")
+
+# --- 🎭 MASTI FEATURE (Owner Only) ---
+def get_waiting_sticker():
+    if os.path.exists(STICKER_FILE):
+        with open(STICKER_FILE, "r") as f:
+            return f.read().strip()
+    return None
+
+@app.on_message(filters.command("setanim") & filters.user(OWNER_ID))
+async def set_animation(client, message):
+    if not message.reply_to_message or not message.reply_to_message.sticker:
+        return await message.reply("❌ **Galti!** Pehle ek Sticker bhejo, fir us par **Reply** karke `/setanim` likho.")
+    
+    sticker_id = message.reply_to_message.sticker.file_id
+    with open(STICKER_FILE, "w") as f:
+        f.write(sticker_id)
+    
+    await message.reply("✅ **Animation Set!**\nAb jab aap (`Owner`) search karenge toh ye sticker dikhega.")
+
+@app.on_message(filters.command("resetanim") & filters.user(OWNER_ID))
+async def reset_animation(client, message):
+    if os.path.exists(STICKER_FILE):
+        os.remove(STICKER_FILE)
+    await message.reply("🔄 **Reset!** Normal text wapas aa gaya.")
 
 # --- 🧠 BROKEN DATA EXTRACTOR ---
 def extract_broken_data(text):
     results = []
-    
-    # 1. Sabse pehle agar Valid JSON mil jaye toh wahin se lelo
     try:
         match = re.search(r'(\[[\s\S]*\])', text)
-        if match:
-            return json.loads(match.group(1))
-    except:
-        pass # JSON fail hua toh niche wala Jugaad chalega
+        if match: return json.loads(match.group(1))
+    except: pass 
 
-    # 2. JUGAAD: Regex se Key-Value pairs dhundho (Chahe JSON ho ya Text)
-    # Ye pattern "key": "value" aur Key: Value dono ko pakdega
-    raw_entries = re.split(r'\}|━━━━━━━━━━━━━━━━━━━━', text) # Har object ke baad split karo
-
+    raw_entries = re.split(r'\}|━━━━━━━━━━━━━━━━━━━━', text)
     for entry in raw_entries:
         if not entry.strip(): continue
-        
         data = {}
-        # Regex map for both JSON style ("key": "val") and Text style (Key: Val)
         mappings = {
             "name": [r'"name":\s*"(.*?)"', r'Name:\s*(.*)'],
             "mobile": [r'"mobile":\s*"(.*?)"', r'Mobile:\s*(.*)'],
@@ -64,28 +109,23 @@ def extract_broken_data(text):
             "email": [r'"email":\s*"(.*?)"', r'Email:\s*(.*)'],
             "id": [r'"id":\s*"(.*?)"', r'ID:\s*(.*)']
         }
-
-        found_any = False
+        found = False
         for key, patterns in mappings.items():
             for pat in patterns:
                 match = re.search(pat, entry, re.IGNORECASE)
                 if match:
-                    val = match.group(1).strip()
-                    # Cleanup values (remove commas or quotes if leaked)
-                    val = val.rstrip('",')
+                    val = match.group(1).strip().rstrip('",')
                     if val and val.lower() != "n/a":
                         data[key] = val
-                        found_any = True
+                        found = True
                     break
-        
-        if found_any:
-            results.append(data)
-
+        if found: results.append(data)
     return results
 
 # --- MAIN LOGIC ---
 @app.on_message(filters.command(["num", "aadhaar", "vehicle", "trace"]) & (filters.private | filters.chat(ALLOWED_GROUPS)))
 async def process_request(client, message):
+    # FSub Check
     for ch in FSUB_CHANNELS:
         try: await client.get_chat_member(ch["id"], message.from_user.id)
         except: return await message.reply_text(f"🚫 **Access Denied!**\nJoin: {ch['link']}")
@@ -94,9 +134,19 @@ async def process_request(client, message):
         return await message.reply_text(f"❌ Usage: `/{message.command[0]} <value>`")
 
     query_val = message.command[1]
-    status_msg = await message.reply_text(f"🔍 **Searching:** `{query_val}`...\n⏳ *Fetching data...*")
+    user_id = message.from_user.id
+    
+    # 🎭 ANIMATION LOGIC (OWNER ONLY)
+    sticker_id = get_waiting_sticker()
+    # Sticker sirf tab dikhega jab user OWNER ho aur sticker set ho
+    if user_id == OWNER_ID and sticker_id:
+        status_msg = await message.reply_sticker(sticker_id)
+    else:
+        # Normal users ke liye text
+        status_msg = await message.reply_text(f"🔍 **Searching:** `{query_val}`...\n⏳ *Fetching data...*")
 
     try:
+        # Peer Fix
         try: chat = await client.get_chat(SEARCH_GROUP_USERNAME)
         except: chat = await client.get_chat(SEARCH_GROUP_ID)
 
@@ -111,24 +161,23 @@ async def process_request(client, message):
                     txt = (log.text or log.caption or "").lower()
                     if any(w in txt for w in ["searching", "processing", "wait"]): continue
                     
-                    # Agar 'mobile' ya 'address' jaisa shabd dikhe, toh result manlo
                     if "mobile" in txt or "address" in txt or "[" in txt:
                         target_response = log
                         break
             if target_response: break
 
         if not target_response:
-            return await status_msg.edit("❌ **Timeout:** Target bot ne reply nahi diya.")
+            await status_msg.delete()
+            return await message.reply_text("❌ **Timeout:** Target bot ne reply nahi diya.")
 
         raw_text = target_response.text or target_response.caption or ""
-        
-        # Asli Magic: Broken Data Extractor
         final_data = extract_broken_data(raw_text)
 
         if not final_data:
-            return await status_msg.edit(f"❌ **Error:** Data samajh nahi aaya.\nRaw: `{raw_text[:50]}...`")
+            await status_msg.delete()
+            return await message.reply_text(f"❌ **Error:** Data samajh nahi aaya.\nRaw: `{raw_text[:50]}...`")
 
-        # Output
+        # Output Generation
         json_box = json.dumps(final_data, indent=2, ensure_ascii=False)
         output_ui = (
             f"👤 **{message.from_user.first_name}**\n"
@@ -140,14 +189,19 @@ async def process_request(client, message):
             f"👊 **MADE BY @MAGMAxRICH**"
         )
 
-        await status_msg.delete()
-        await message.reply_text(
+        await status_msg.delete() # Animation delete
+        final_msg = await message.reply_text(
             output_ui,
             reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("📋 COPY CODE", switch_inline_query_current_chat=json_box)]])
         )
 
-    except Exception as e:
-        await status_msg.edit(f"❌ **Error:** {str(e)}")
+        # 30s Auto Delete
+        await asyncio.sleep(30)
+        await final_msg.delete()
 
-print("🚀 Broken JSON Handler Live!")
+    except Exception as e:
+        await status_msg.delete()
+        await message.reply_text(f"❌ **Error:** {str(e)}")
+
+print("🚀 Bot Live: /start added & Owner Animation Fixed!")
 app.run()
