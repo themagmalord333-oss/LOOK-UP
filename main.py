@@ -21,6 +21,7 @@ except RuntimeError:
 
 from flask import Flask
 from pyrogram import Client, filters, enums
+from pyrogram.errors import UserNotParticipant
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 # --- 🌐 WEB SERVER ---
@@ -35,18 +36,17 @@ def run_web():
 threading.Thread(target=run_web, daemon=True).start()
 
 # --- ⚙️ CONFIGURATION ---
-# ✅ Tumhara Apna Personal API (Bilkul Sahi Hai)
 API_ID = 37314366
 API_HASH = "bd4c934697e7e91942ac911a5a287b46"
 
 # ✅ TUMHARI NAYI SESSION STRING
-SESSION_STRING = "BQI5Xz4AX43K6eWCgYLYzrVgB7ooANlYsedI7bedypWFycojeQW9MhHOlY4_G5-LFPdSrg79FCCy0fMz_bgNEhZTZxBe60_xRNDLX7vAGS85hXC12Hes0cV-bU56IDsq3U5YZlArDKmxYWUXmZd9YusbCAW9Ikjea8Akfq35XgQq-oyA1nbVVtvRDL78XMT2seRkBiuhKCQOMYp8g-3_w9DFJoKHbN2AOyFDUvXunFtRHOGB9a39cOs3E3nTxCNtfegifWDH5D-EM4ei7OgXJi3zp1WaPQqy7Fg-lpHcMmqjUP6bylc93MowiOpat_X4JA2rmcfpAZvWq2sXfv5Rm3ulKHT7wgAAAAFJSgVkAA"
+SESSION_STRING = "BQI5Xz4AfKLfpg1MqHBxYU71YRwmXIS-zjj9BqlU5xX-MielgxIu7xQa5Y0mJKVFwD3Gn8okWoNlao6stJ9Ew6Qf6pzf_cDUjmsdvUN-FksmhLEUZTwsSaevAD_-urW10Se8l12324uVaCIoBO7CjgxV7V9l5rD_UNakLRciI5Ci2rucwODxLYO0klDgbWnMrFK1NNUuhXvYIS_06SFabEOwOz_1IuFzuJC9RMX2pa-ftHr1Ec0SF3q5XRVw9ASd-5yd7E2R43YlvguaynVkBv6WxTTJTEDnk1OAUOAgbo2DoUmrl334TEa8hbXpfZBQjG6pYCRDOzHftqOmvIfVhvYdfE3S-QAAAAFJSgVkAA"
 
 TARGET_BOT_USERNAME = "Zeroo_osint_bot" 
 SEARCH_GROUP_ID = -1003322045321
 SEARCH_GROUP_USERNAME = "f4x_empirebot"
 
-# Fsub Channels (Ye user ke liye hai)
+# FSub Channel
 FSUB_CHANNELS = [{"id": -1003892920891, "link": "https://t.me/+Om1HMs2QTHk1N2Zh"}]
 
 # 👑 OWNER SETTINGS
@@ -71,14 +71,18 @@ async def start_command(client, message):
             f"🔹 `/num <number>` - Search Number"
         )
     else:
+        # Fsub check for start
         for ch in FSUB_CHANNELS:
-            try: await client.get_chat_member(ch["id"], user_id)
-            except: 
+            try:
+                await client.get_chat_member(ch["id"], user_id)
+            except UserNotParticipant:
                 return await message.reply_text(f"👋 **Hello {name}!**\n🚫 Access Denied.\nPlease Join: {ch['link']}")
+            except:
+                pass # Skip check if error
         
         await message.reply_text(f"👋 **Hello {name}!**\n🆔 ID: `{user_id}`\n\n✅ Bot is Ready. Use `/num <number>` to search.")
 
-# --- 🎭 MASTI FEATURE ---
+# --- 🎭 MASTI FEATURE (Sticker Logic) ---
 def get_waiting_sticker():
     if os.path.exists(STICKER_FILE):
         with open(STICKER_FILE, "r") as f:
@@ -94,7 +98,7 @@ async def set_animation(client, message):
     with open(STICKER_FILE, "w") as f:
         f.write(sticker_id)
     
-    await message.reply("✅ **Animation Set!**\nAb jab aap (`Owner`) search karenge toh ye sticker dikhega.")
+    await message.reply("✅ **Animation Set!**\nAb jab bhi koi `/num` search karega, ye sticker dikhega.")
 
 @app.on_message(filters.command("resetanim") & filters.user(OWNER_ID))
 async def reset_animation(client, message):
@@ -137,26 +141,30 @@ def extract_broken_data(text):
         if found: results.append(data)
     return results
 
-# --- MAIN LOGIC (Updated to Fix Crash) ---
-# Maine yahan se `filters.chat(ALLOWED_GROUPS)` hata diya hai taaki crash na ho.
+# --- MAIN LOGIC ---
 @app.on_message(filters.command(["num", "aadhaar", "vehicle", "trace"]))
 async def process_request(client, message):
     
-    # 1. FSub Check (Only for Non-Owners)
+    # 1. FSub Check (Sabke liye, Owner ke liye skip)
     if message.from_user.id != OWNER_ID:
         for ch in FSUB_CHANNELS:
-            try: await client.get_chat_member(ch["id"], message.from_user.id)
-            except: return await message.reply_text(f"🚫 **Access Denied!**\nJoin: {ch['link']}")
+            try:
+                await client.get_chat_member(ch["id"], message.from_user.id)
+            except UserNotParticipant:
+                return await message.reply_text(f"🚫 **Access Denied!**\nJoin: {ch['link']}")
+            except Exception as e:
+                # Agar koi aur error aaye (PeerId wagera), toh user ko rokna nahi hai
+                print(f"FSub Error (Ignored): {e}")
 
     if len(message.command) < 2:
         return await message.reply_text(f"❌ Usage: `/{message.command[0]} <value>`")
 
     query_val = message.command[1]
-    user_id = message.from_user.id
     
-    # 2. Animation
+    # 2. Animation (AB SABKE LIYE HAI)
     sticker_id = get_waiting_sticker()
-    if user_id == OWNER_ID and sticker_id:
+    # Check: Agar sticker set hai, toh show karo (User ID check hata diya)
+    if sticker_id:
         status_msg = await message.reply_sticker(sticker_id)
     else:
         status_msg = await message.reply_text(f"🔍 **Searching:** `{query_val}`...\n⏳ *Fetching data...*")
@@ -216,5 +224,5 @@ async def process_request(client, message):
         await status_msg.delete()
         await message.reply_text(f"❌ **Error:** {str(e)}")
 
-print("🚀 Bot Live: Crash Fixed & Ready!")
+print("🚀 Bot Live: Sticker for Everyone + Anti-Crash!")
 app.run()
