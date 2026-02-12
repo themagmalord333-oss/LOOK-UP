@@ -1,164 +1,153 @@
 import os
 import asyncio
 import json
+import re
 import threading
 from flask import Flask
 from pyrogram import Client, filters, enums
-from pyrogram.errors import UserNotParticipant, PeerIdInvalid, ChannelInvalid
+from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
-# --- 🌐 WEB SERVER (For 24/7 Hosting) ---
+# --- 🌐 WEB SERVER ---
 web_app = Flask(__name__)
-
 @web_app.route('/')
-def home():
-    return "Bot is Running 24/7! 🚀"
+def home(): return "Bot is Online! 🚀"
 
 def run_web():
     port = int(os.environ.get("PORT", 8080))
     web_app.run(host='0.0.0.0', port=port)
 
-t = threading.Thread(target=run_web)
-t.daemon = True
-t.start()
+threading.Thread(target=run_web, daemon=True).start()
 
 # --- CONFIGURATION ---
 API_ID = 37314366
 API_HASH = "bd4c934697e7e91942ac911a5a287b46"
+# Aapka Session String
+SESSION_STRING = "BQI5Xz4ANzYEjiKIML0uMU9tojksdxKz_bCurzC00eBbvDLQZan_bwZtMzXJzHJaybTK_HK1Q6TLbbfGXguF4W_s7gbSZaOESUHERMDJJxk_v3dM_7fbuCyKTP0ajf9NS9sbPYoK2Tiq9s91aJln1vYuQ8YlN3SBgwKcYOwwXTFv_WhWsF4ZnT4GQZEAU6cdudoEQmfTrXAh_plktB1TwrDd57rh5ulwyCW37uJyW_OwqdC1moXgrWzV4mj4Gx6_ghkolzi7AhfUpk_emqjMhBj5x7-sUB5SUwcbdWCqWVKivfu3Wu0uE4EVCcpVHsEycT3HPr-chNqdpjLRTIyD-Euc3w3gkwAAAAFJSgVkAA"
 
-# 🆕 LATEST SESSION STRING
-SESSION_STRING = "BQI5Xz4AmzwL4r48Fh3FFYkbXAvACVzMqb67stPRsvrIWKG1c0R83OANpXF0Vn-igy4HFDZhGAjFGRpys1mU9xL6Qwa4lhRQjzV6oFYN_uj9o9lGuRfxQlC18Iws1vdRdBR_MIw6Y9wWnYVey8eZI8zdEh1Gri23gIMjtsR9iErjrn6m4LDvRAGa50wxq126uu03GnxhcKDwLoD4ymjYLjNt17E0PdWolHvJEbl4RGVd7w2aaf3ZtP0KYhQadDIas4BDObkKR-8EQnNAtmL60x0BxAzdBrIS9oBhiaxHKvNJEf8lmxGb4WpGFV9-dCtrpYFI2zrSwpGC_Z_qoFjCkqabPDvFZgAAAAFJSgVkAA"
+TARGET_BOT_USERNAME = "Zeroo_osint_bot" 
+SEARCH_GROUP_ID = -1003322045321
+SEARCH_GROUP_USERNAME = "f4x_empirebot"
 
-# 🎯 UPDATED TARGET SETTINGS
-TARGET_BOT_USERNAME = "AdvancedInfoV2bot"
-SEARCH_GROUP_ID = -1003227082022 
-
-# --- 🔐 SECURITY & PRIVATE FSUB ---
-ALLOWED_GROUPS = [-1003387459132] 
-
-# Private Channel Settings
-FSUB_CHANNELS = [
-    {"id": -1003892920891, "link": "https://t.me/+Om1HMs2QTHk1N2Zh"}
-]
+ALLOWED_GROUPS = [-1003387459132]
+FSUB_CHANNELS = [{"id": -1003892920891, "link": "https://t.me/+Om1HMs2QTHk1N2Zh"}]
 
 app = Client("anysnap_secure_bot", api_id=API_ID, api_hash=API_HASH, session_string=SESSION_STRING)
 
-# --- HELPER: CHECK JOIN ---
-async def check_user_joined(client, user_id):
-    for ch in FSUB_CHANNELS:
-        try:
-            member = await client.get_chat_member(ch["id"], user_id)
-            if member.status in [enums.ChatMemberStatus.LEFT, enums.ChatMemberStatus.BANNED]:
-                return False
-        except (UserNotParticipant, PeerIdInvalid):
-            return False
-        except Exception:
-            pass 
-    return True
+# --- 🧠 BROKEN DATA EXTRACTOR ---
+def extract_broken_data(text):
+    results = []
+    
+    # 1. Sabse pehle agar Valid JSON mil jaye toh wahin se lelo
+    try:
+        match = re.search(r'(\[[\s\S]*\])', text)
+        if match:
+            return json.loads(match.group(1))
+    except:
+        pass # JSON fail hua toh niche wala Jugaad chalega
 
-# --- DASHBOARD ---
-@app.on_message(filters.command(["start", "help", "menu"], prefixes="/") & (filters.private | filters.chat(ALLOWED_GROUPS)))
-async def show_dashboard(client, message):
-    if not await check_user_joined(client, message.from_user.id):
-        buttons = "\n".join([f"➡️ [Join Channel]({ch['link']})" for ch in FSUB_CHANNELS])
-        return await message.reply_text(
-            f"🚫 **Access Denied!**\n\nBot use karne ke liye join karein:\n{buttons}\n\nJoin karne ke baad /start karein.",
-            disable_web_page_preview=True
-        )
+    # 2. JUGAAD: Regex se Key-Value pairs dhundho (Chahe JSON ho ya Text)
+    # Ye pattern "key": "value" aur Key: Value dono ko pakdega
+    raw_entries = re.split(r'\}|━━━━━━━━━━━━━━━━━━━━', text) # Har object ke baad split karo
 
-    text = (
-        "📖 **ANYSNAP DASHBOARD**\n"
-        "━━━━━━━━━━━━━━━━━━\n"
-        "🔍 **Commands:** `/num`, `/vehicle`, `/aadhaar`, `/gst`, `/upi`\n"
-        "━━━━━━━━━━━━━━━━━━\n"
-        "⚡ **Powered by @MAGMAxRICH**"
-    )
-    await message.reply_text(text, disable_web_page_preview=True)
+    for entry in raw_entries:
+        if not entry.strip(): continue
+        
+        data = {}
+        # Regex map for both JSON style ("key": "val") and Text style (Key: Val)
+        mappings = {
+            "name": [r'"name":\s*"(.*?)"', r'Name:\s*(.*)'],
+            "mobile": [r'"mobile":\s*"(.*?)"', r'Mobile:\s*(.*)'],
+            "fname": [r'"fname":\s*"(.*?)"', r'Father Name:\s*(.*)'],
+            "address": [r'"address":\s*"(.*?)"', r'Address:\s*(.*)'],
+            "circle": [r'"circle":\s*"(.*?)"', r'Circle:\s*(.*)'],
+            "alt": [r'"alt":\s*"(.*?)"', r'Alt Mobile:\s*(.*)'],
+            "email": [r'"email":\s*"(.*?)"', r'Email:\s*(.*)'],
+            "id": [r'"id":\s*"(.*?)"', r'ID:\s*(.*)']
+        }
 
-# --- MAIN LOGIC (JSON & CREDIT CHANGE) ---
-@app.on_message(filters.command(["num", "aadhaar", "gst", "ifsc", "upi", "fam", "vehicle", "tg", "trace", "gmail"], prefixes="/") & (filters.private | filters.chat(ALLOWED_GROUPS)))
+        found_any = False
+        for key, patterns in mappings.items():
+            for pat in patterns:
+                match = re.search(pat, entry, re.IGNORECASE)
+                if match:
+                    val = match.group(1).strip()
+                    # Cleanup values (remove commas or quotes if leaked)
+                    val = val.rstrip('",')
+                    if val and val.lower() != "n/a":
+                        data[key] = val
+                        found_any = True
+                    break
+        
+        if found_any:
+            results.append(data)
+
+    return results
+
+# --- MAIN LOGIC ---
+@app.on_message(filters.command(["num", "aadhaar", "vehicle", "trace"]) & (filters.private | filters.chat(ALLOWED_GROUPS)))
 async def process_request(client, message):
-    if not await check_user_joined(client, message.from_user.id):
-        return await message.reply_text("🚫 **Pehle Channel Join Karein!**")
+    for ch in FSUB_CHANNELS:
+        try: await client.get_chat_member(ch["id"], message.from_user.id)
+        except: return await message.reply_text(f"🚫 **Access Denied!**\nJoin: {ch['link']}")
 
     if len(message.command) < 2:
         return await message.reply_text(f"❌ Usage: `/{message.command[0]} <value>`")
 
-    status_msg = await message.reply_text(f"🔍 **Searching via Anysnap...**")
+    query_val = message.command[1]
+    status_msg = await message.reply_text(f"🔍 **Searching:** `{query_val}`...\n⏳ *Fetching data...*")
 
     try:
-        # Request send karna
-        sent_req = await client.send_message(SEARCH_GROUP_ID, message.text)
+        try: chat = await client.get_chat(SEARCH_GROUP_USERNAME)
+        except: chat = await client.get_chat(SEARCH_GROUP_ID)
+
+        sent_req = await client.send_message(chat.id, f"/num {query_val}")
         target_response = None
 
-        # Wait Loop for @AdvancedInfoV2bot
-        for attempt in range(20): 
-            await asyncio.sleep(2.5) 
-            async for log in client.get_chat_history(SEARCH_GROUP_ID, limit=8):
-                if log.from_user and log.from_user.username == TARGET_BOT_USERNAME:
-                    # Reply check karna
-                    if log.reply_to_message_id == sent_req.id:
-                        text_content = (log.text or log.caption or "").lower()
-                        if any(word in text_content for word in ["wait", "processing", "searching"]):
-                            continue 
+        # 60 Sec Wait Loop
+        for _ in range(30): 
+            await asyncio.sleep(2) 
+            async for log in client.get_chat_history(chat.id, limit=10):
+                if log.reply_to_message_id == sent_req.id:
+                    txt = (log.text or log.caption or "").lower()
+                    if any(w in txt for w in ["searching", "processing", "wait"]): continue
+                    
+                    # Agar 'mobile' ya 'address' jaisa shabd dikhe, toh result manlo
+                    if "mobile" in txt or "address" in txt or "[" in txt:
                         target_response = log
-                        break 
+                        break
             if target_response: break
 
         if not target_response:
             return await status_msg.edit("❌ **Timeout:** Target bot ne reply nahi diya.")
 
-        # Data Extraction
-        raw_text = ""
-        if target_response.document:
-            file_path = await client.download_media(target_response)
-            with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
-                raw_text = f.read()
-            os.remove(file_path)
-        else:
-            raw_text = target_response.text or target_response.caption or ""
-
-        # --- CLEANING & JSON TRANSFORMATION ---
-        # Kisi bhi purane credit ko apne credit se badalna
-        clean_text = raw_text.replace("@Zrov_Clan", "@MAGMAxRICH").replace("@AdvancedInfoV2bot", "@MAGMAxRICH")
+        raw_text = target_response.text or target_response.caption or ""
         
-        lines = [line.strip() for line in clean_text.splitlines() if line.strip()]
-        results_list = []
-        current_item = {}
+        # Asli Magic: Broken Data Extractor
+        final_data = extract_broken_data(raw_text)
 
-        for line in lines:
-            if ":" in line:
-                key, val = line.split(":", 1)
-                k = key.strip().lower()
-                v = val.strip()
-                # Naya record identify karna (agar Mobile ya Name key dubara aaye)
-                if k in ["mobile", "name", "id"] and k in current_item:
-                    results_list.append(current_item)
-                    current_item = {}
-                current_item[k] = v
+        if not final_data:
+            return await status_msg.edit(f"❌ **Error:** Data samajh nahi aaya.\nRaw: `{raw_text[:50]}...`")
 
-        if current_item:
-            results_list.append(current_item)
-
-        # Final JSON Structure
-        final_json = {
-            "status": "success",
-            "count": len(results_list),
-            "results": results_list,
-            "credit": "@MAGMAxRICH"
-        }
-
-        await status_msg.delete()
-        json_output = json.dumps(final_json, indent=4, ensure_ascii=False)
-        result_msg = await message.reply_text(
-            f"**Result:**\n```json\n{json_output}\n```\n\n@MAGMAxRICH"
+        # Output
+        json_box = json.dumps(final_data, indent=2, ensure_ascii=False)
+        output_ui = (
+            f"👤 **{message.from_user.first_name}**\n"
+            f"🔢 `{query_val}`\n\n"
+            f"📂 **Number Information**\n"
+            f"━━━━━━━━━━━━━━━━━━\n"
+            f"📝 **JSON Response:**\n"
+            f"```json\n{json_box}\n```\n"
+            f"👊 **MADE BY @MAGMAxRICH**"
         )
 
-        # Auto Delete result after 30 seconds
-        await asyncio.sleep(30)
-        await result_msg.delete()
+        await status_msg.delete()
+        await message.reply_text(
+            output_ui,
+            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("📋 COPY CODE", switch_inline_query_current_chat=json_box)]])
+        )
 
     except Exception as e:
         await status_msg.edit(f"❌ **Error:** {str(e)}")
 
-print("🚀 ANYSNAP Updated JSON Mode Live!")
+print("🚀 Broken JSON Handler Live!")
 app.run()
