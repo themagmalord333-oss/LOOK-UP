@@ -5,8 +5,7 @@ import re
 import threading
 import sys
 
-# --- 🛠️ RENDER PYTHON 3.14 FIX (CRITICAL) ---
-# Ye hissa Render par bot ko crash hone se bachayega
+# --- 🛠️ RENDER PYTHON 3.14 FIX ---
 try:
     import uvloop
     asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
@@ -18,13 +17,13 @@ try:
 except RuntimeError:
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
-# ----------------------------------------------
+# ----------------------------------
 
 from flask import Flask
 from pyrogram import Client, filters, enums
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
-# --- 🌐 WEB SERVER (24/7 Alive) ---
+# --- 🌐 WEB SERVER ---
 web_app = Flask(__name__)
 @web_app.route('/')
 def home(): return "Bot is Online! 🚀"
@@ -35,22 +34,22 @@ def run_web():
 
 threading.Thread(target=run_web, daemon=True).start()
 
-# --- ⚙️ CONFIGURATION (Tumhara Personal Data) ---
-# ✅ Tumhara Personal API ID & Hash (Jo tumne screenshot me dikhaya tha)
+# --- ⚙️ CONFIGURATION ---
+# ✅ Tumhara Apna Personal API (Bilkul Sahi Hai)
 API_ID = 37314366
 API_HASH = "bd4c934697e7e91942ac911a5a287b46"
 
-# ✅ TUMHARI NAYI SESSION STRING (Jo abhi tumne di hai)
+# ✅ TUMHARI NAYI SESSION STRING
 SESSION_STRING = "BQI5Xz4An2WuCEQRMWxeNrgNWxu9frIIFgyXv3q4XdcTjZOWMNB7Vx4j8ICWpzESYI2Y4kPSVZFq6WxpdstQtZAn9fP7HQ-1QVN465fc4NkSJMN4LXduCATFzg4G4IblvT5FQNbQ4D3e7kQ6JYxrO6og0heZ71vhdDDLg6wF2hrg29zP8-qB2-ftUIJ1FnzoLe2v78fIVHVUFZupB4UEc-1l7TYoJyyMq0AKsh03phWZPEPxR0liZ94gDs8KKFqVX7exCX1S47D61fFAQ7Tgl9tcYkQn3U-YpuUG74FatVM3j693jQZUmemq3EHGIfV7JdhU517EyY7M-rKFQa-Qbq77v_QKLwAAAAFJSgVkAA"
 
 TARGET_BOT_USERNAME = "Zeroo_osint_bot" 
 SEARCH_GROUP_ID = -1003322045321
 SEARCH_GROUP_USERNAME = "f4x_empirebot"
 
-ALLOWED_GROUPS = [-1003387459132]
+# Fsub Channels (Ye user ke liye hai)
 FSUB_CHANNELS = [{"id": -1003892920891, "link": "https://t.me/+Om1HMs2QTHk1N2Zh"}]
 
-# 👑 OWNER SETTINGS (Sirf Tumhare Liye)
+# 👑 OWNER SETTINGS
 OWNER_ID = 8081343902
 STICKER_FILE = "anim_sticker.txt"
 
@@ -79,7 +78,7 @@ async def start_command(client, message):
         
         await message.reply_text(f"👋 **Hello {name}!**\n🆔 ID: `{user_id}`\n\n✅ Bot is Ready. Use `/num <number>` to search.")
 
-# --- 🎭 MASTI FEATURE (Owner Only) ---
+# --- 🎭 MASTI FEATURE ---
 def get_waiting_sticker():
     if os.path.exists(STICKER_FILE):
         with open(STICKER_FILE, "r") as f:
@@ -103,7 +102,7 @@ async def reset_animation(client, message):
         os.remove(STICKER_FILE)
     await message.reply("🔄 **Reset!** Normal text wapas aa gaya.")
 
-# --- 🧠 BROKEN DATA EXTRACTOR (Jugaad Logic) ---
+# --- 🧠 BROKEN DATA EXTRACTOR ---
 def extract_broken_data(text):
     results = []
     try:
@@ -138,12 +137,16 @@ def extract_broken_data(text):
         if found: results.append(data)
     return results
 
-# --- MAIN LOGIC ---
-@app.on_message(filters.command(["num", "aadhaar", "vehicle", "trace"]) & (filters.private | filters.chat(ALLOWED_GROUPS)))
+# --- MAIN LOGIC (Updated to Fix Crash) ---
+# Maine yahan se `filters.chat(ALLOWED_GROUPS)` hata diya hai taaki crash na ho.
+@app.on_message(filters.command(["num", "aadhaar", "vehicle", "trace"]))
 async def process_request(client, message):
-    for ch in FSUB_CHANNELS:
-        try: await client.get_chat_member(ch["id"], message.from_user.id)
-        except: return await message.reply_text(f"🚫 **Access Denied!**\nJoin: {ch['link']}")
+    
+    # 1. FSub Check (Only for Non-Owners)
+    if message.from_user.id != OWNER_ID:
+        for ch in FSUB_CHANNELS:
+            try: await client.get_chat_member(ch["id"], message.from_user.id)
+            except: return await message.reply_text(f"🚫 **Access Denied!**\nJoin: {ch['link']}")
 
     if len(message.command) < 2:
         return await message.reply_text(f"❌ Usage: `/{message.command[0]} <value>`")
@@ -151,7 +154,7 @@ async def process_request(client, message):
     query_val = message.command[1]
     user_id = message.from_user.id
     
-    # 🎭 Animation Logic
+    # 2. Animation
     sticker_id = get_waiting_sticker()
     if user_id == OWNER_ID and sticker_id:
         status_msg = await message.reply_sticker(sticker_id)
@@ -165,7 +168,7 @@ async def process_request(client, message):
         sent_req = await client.send_message(chat.id, f"/num {query_val}")
         target_response = None
 
-        # 60s Smart Wait Loop
+        # 3. Wait Loop
         for _ in range(30): 
             await asyncio.sleep(2) 
             async for log in client.get_chat_history(chat.id, limit=10):
@@ -200,13 +203,12 @@ async def process_request(client, message):
             f"👊 **MADE BY @MAGMAxRICH**"
         )
 
-        await status_msg.delete() # Sticker hatao
+        await status_msg.delete()
         final_msg = await message.reply_text(
             output_ui,
             reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("📋 COPY CODE", switch_inline_query_current_chat=json_box)]])
         )
 
-        # ⏱️ 30s Auto Delete
         await asyncio.sleep(30)
         await final_msg.delete()
 
@@ -214,5 +216,5 @@ async def process_request(client, message):
         await status_msg.delete()
         await message.reply_text(f"❌ **Error:** {str(e)}")
 
-print("🚀 Bot Live: New Personal Session & Render Fix Applied!")
+print("🚀 Bot Live: Crash Fixed & Ready!")
 app.run()
