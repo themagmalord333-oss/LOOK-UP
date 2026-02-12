@@ -7,6 +7,21 @@ from flask import Flask
 from pyrogram import Client, filters, enums
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
+# --- 🛠️ FIX FOR PYTHON 3.10+ / 3.14 EVENT LOOP ERROR ---
+try:
+    import uvloop
+    uvloop.install()
+except ImportError:
+    pass
+
+# Force create an event loop if one doesn't exist
+try:
+    loop = asyncio.get_running_loop()
+except RuntimeError:
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+# -------------------------------------------------------
+
 # --- 🌐 WEB SERVER ---
 web_app = Flask(__name__)
 @web_app.route('/')
@@ -21,11 +36,9 @@ threading.Thread(target=run_web, daemon=True).start()
 # --- CONFIGURATION ---
 API_ID = 37314366
 API_HASH = "bd4c934697e7e91942ac911a5a287b46"
-
-# 🆕 UPDATED SESSION STRING (Jo last generate hui thi)
 SESSION_STRING = "BQI5Xz4AaDFKlxzx_muIPYRzRIyyvWNmtF2NLY6pdaohx8V11Md5_7TPwIW3sT-Tky3rKh6qOh9ARJDsB9ZBK8KstH5EkSAi6wX4edFpThdUKyahCAbjlj7dp9GK5KOR9JNjjxRTIMRxelhkFp7uErgEL86oYPB4NKMknMqol-kzuLathqALqAAEK3woiZn_af73k8dD5wTWoXbZsWu6UJZPfE2EauvJxVhvvx8HY7ojt7YpmCSel-meMxnIzv7gi5AiEveSdT_Kk_3Ntj7h5bxFb_rcEDo0kOvrvFx6ibJeu8XFdJ8U9wD4BmgbiGQlsvghGHj3gY5-t0969-4VEig-3zSl-QAAAAFJSgVkAA"
 
-TARGET_BOT_USERNAME = "Zeroo_osint_bot" 
+TARGET_BOT_USERNAME = "Zeroo_osint_bot"
 SEARCH_GROUP_ID = -1003322045321
 SEARCH_GROUP_USERNAME = "f4x_empirebot"
 
@@ -38,13 +51,12 @@ STICKER_FILE = "anim_sticker.txt"
 
 app = Client("anysnap_secure_bot", api_id=API_ID, api_hash=API_HASH, session_string=SESSION_STRING)
 
-# --- 👋 START COMMAND (New) ---
+# --- 👋 START COMMAND ---
 @app.on_message(filters.command("start"))
 async def start_command(client, message):
     user_id = message.from_user.id
     name = message.from_user.first_name
     
-    # Check if user is Owner
     if user_id == OWNER_ID:
         await message.reply_text(
             f"👑 **Welcome Boss {name}!**\n"
@@ -55,7 +67,6 @@ async def start_command(client, message):
             f"🔹 `/num <number>` - Search Number"
         )
     else:
-        # Check FSub for normal users
         for ch in FSUB_CHANNELS:
             try: await client.get_chat_member(ch["id"], user_id)
             except: 
@@ -63,7 +74,7 @@ async def start_command(client, message):
         
         await message.reply_text(f"👋 **Hello {name}!**\n🆔 ID: `{user_id}`\n\n✅ Bot is Ready. Use `/num <number>` to search.")
 
-# --- 🎭 MASTI FEATURE (Owner Only) ---
+# --- 🎭 MASTI FEATURE ---
 def get_waiting_sticker():
     if os.path.exists(STICKER_FILE):
         with open(STICKER_FILE, "r") as f:
@@ -125,7 +136,6 @@ def extract_broken_data(text):
 # --- MAIN LOGIC ---
 @app.on_message(filters.command(["num", "aadhaar", "vehicle", "trace"]) & (filters.private | filters.chat(ALLOWED_GROUPS)))
 async def process_request(client, message):
-    # FSub Check
     for ch in FSUB_CHANNELS:
         try: await client.get_chat_member(ch["id"], message.from_user.id)
         except: return await message.reply_text(f"🚫 **Access Denied!**\nJoin: {ch['link']}")
@@ -136,24 +146,19 @@ async def process_request(client, message):
     query_val = message.command[1]
     user_id = message.from_user.id
     
-    # 🎭 ANIMATION LOGIC (OWNER ONLY)
     sticker_id = get_waiting_sticker()
-    # Sticker sirf tab dikhega jab user OWNER ho aur sticker set ho
     if user_id == OWNER_ID and sticker_id:
         status_msg = await message.reply_sticker(sticker_id)
     else:
-        # Normal users ke liye text
         status_msg = await message.reply_text(f"🔍 **Searching:** `{query_val}`...\n⏳ *Fetching data...*")
 
     try:
-        # Peer Fix
         try: chat = await client.get_chat(SEARCH_GROUP_USERNAME)
         except: chat = await client.get_chat(SEARCH_GROUP_ID)
 
         sent_req = await client.send_message(chat.id, f"/num {query_val}")
         target_response = None
 
-        # 60 Sec Wait Loop
         for _ in range(30): 
             await asyncio.sleep(2) 
             async for log in client.get_chat_history(chat.id, limit=10):
@@ -177,7 +182,6 @@ async def process_request(client, message):
             await status_msg.delete()
             return await message.reply_text(f"❌ **Error:** Data samajh nahi aaya.\nRaw: `{raw_text[:50]}...`")
 
-        # Output Generation
         json_box = json.dumps(final_data, indent=2, ensure_ascii=False)
         output_ui = (
             f"👤 **{message.from_user.first_name}**\n"
@@ -189,13 +193,12 @@ async def process_request(client, message):
             f"👊 **MADE BY @MAGMAxRICH**"
         )
 
-        await status_msg.delete() # Animation delete
+        await status_msg.delete()
         final_msg = await message.reply_text(
             output_ui,
             reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("📋 COPY CODE", switch_inline_query_current_chat=json_box)]])
         )
 
-        # 30s Auto Delete
         await asyncio.sleep(30)
         await final_msg.delete()
 
@@ -203,5 +206,5 @@ async def process_request(client, message):
         await status_msg.delete()
         await message.reply_text(f"❌ **Error:** {str(e)}")
 
-print("🚀 Bot Live: /start added & Owner Animation Fixed!")
+print("🚀 Bot Live: Python 3.14 Event Loop Patch Applied!")
 app.run()
