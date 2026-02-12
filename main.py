@@ -3,24 +3,26 @@ import asyncio
 import json
 import re
 import threading
-from flask import Flask
-from pyrogram import Client, filters, enums
-from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+import sys
 
-# --- 🛠️ FIX FOR PYTHON 3.10+ / 3.14 EVENT LOOP ERROR ---
+# --- 🛠️ MAGIC FIX FOR PYTHON 3.14 RENDER ERROR ---
+# Ye hissa zabardasti loop create karega taaki bot crash na ho
 try:
     import uvloop
-    uvloop.install()
+    asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 except ImportError:
     pass
 
-# Force create an event loop if one doesn't exist
 try:
-    loop = asyncio.get_running_loop()
+    asyncio.get_running_loop()
 except RuntimeError:
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
-# -------------------------------------------------------
+# ---------------------------------------------------
+
+from flask import Flask
+from pyrogram import Client, filters, enums
+from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 # --- 🌐 WEB SERVER ---
 web_app = Flask(__name__)
@@ -36,6 +38,7 @@ threading.Thread(target=run_web, daemon=True).start()
 # --- CONFIGURATION ---
 API_ID = 37314366
 API_HASH = "bd4c934697e7e91942ac911a5a287b46"
+# Aapki Latest Session String
 SESSION_STRING = "BQI5Xz4AaDFKlxzx_muIPYRzRIyyvWNmtF2NLY6pdaohx8V11Md5_7TPwIW3sT-Tky3rKh6qOh9ARJDsB9ZBK8KstH5EkSAi6wX4edFpThdUKyahCAbjlj7dp9GK5KOR9JNjjxRTIMRxelhkFp7uErgEL86oYPB4NKMknMqol-kzuLathqALqAAEK3woiZn_af73k8dD5wTWoXbZsWu6UJZPfE2EauvJxVhvvx8HY7ojt7YpmCSel-meMxnIzv7gi5AiEveSdT_Kk_3Ntj7h5bxFb_rcEDo0kOvrvFx6ibJeu8XFdJ8U9wD4BmgbiGQlsvghGHj3gY5-t0969-4VEig-3zSl-QAAAAFJSgVkAA"
 
 TARGET_BOT_USERNAME = "Zeroo_osint_bot"
@@ -74,7 +77,7 @@ async def start_command(client, message):
         
         await message.reply_text(f"👋 **Hello {name}!**\n🆔 ID: `{user_id}`\n\n✅ Bot is Ready. Use `/num <number>` to search.")
 
-# --- 🎭 MASTI FEATURE ---
+# --- 🎭 MASTI FEATURE (Owner Only) ---
 def get_waiting_sticker():
     if os.path.exists(STICKER_FILE):
         with open(STICKER_FILE, "r") as f:
@@ -136,6 +139,7 @@ def extract_broken_data(text):
 # --- MAIN LOGIC ---
 @app.on_message(filters.command(["num", "aadhaar", "vehicle", "trace"]) & (filters.private | filters.chat(ALLOWED_GROUPS)))
 async def process_request(client, message):
+    # FSub Check
     for ch in FSUB_CHANNELS:
         try: await client.get_chat_member(ch["id"], message.from_user.id)
         except: return await message.reply_text(f"🚫 **Access Denied!**\nJoin: {ch['link']}")
@@ -146,6 +150,7 @@ async def process_request(client, message):
     query_val = message.command[1]
     user_id = message.from_user.id
     
+    # Animation logic
     sticker_id = get_waiting_sticker()
     if user_id == OWNER_ID and sticker_id:
         status_msg = await message.reply_sticker(sticker_id)
@@ -159,6 +164,7 @@ async def process_request(client, message):
         sent_req = await client.send_message(chat.id, f"/num {query_val}")
         target_response = None
 
+        # 60s Wait loop
         for _ in range(30): 
             await asyncio.sleep(2) 
             async for log in client.get_chat_history(chat.id, limit=10):
@@ -206,5 +212,5 @@ async def process_request(client, message):
         await status_msg.delete()
         await message.reply_text(f"❌ **Error:** {str(e)}")
 
-print("🚀 Bot Live: Python 3.14 Event Loop Patch Applied!")
+print("🚀 Bot Live: Forced Event Loop Patch Applied!")
 app.run()
