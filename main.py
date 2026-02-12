@@ -5,8 +5,8 @@ import re
 import threading
 import sys
 
-# --- 🛠️ CRITICAL FIX FOR RENDER PYTHON 3.14 CRASH ---
-# Ye code sabse upar hona zaroori hai. Ye zabardasti Event Loop banayega.
+# --- 🛠️ RENDER PYTHON 3.14 FIX (CRITICAL) ---
+# Ye hissa Render par bot ko crash hone se bachayega
 try:
     import uvloop
     asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
@@ -14,19 +14,17 @@ except ImportError:
     pass
 
 try:
-    # Check agar loop pehle se hai
     asyncio.get_running_loop()
 except RuntimeError:
-    # Agar nahi hai (Render error), toh naya banao
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
-# -------------------------------------------------------
+# ----------------------------------------------
 
 from flask import Flask
 from pyrogram import Client, filters, enums
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
-# --- 🌐 WEB SERVER ---
+# --- 🌐 WEB SERVER (24/7 Alive) ---
 web_app = Flask(__name__)
 @web_app.route('/')
 def home(): return "Bot is Online! 🚀"
@@ -37,12 +35,13 @@ def run_web():
 
 threading.Thread(target=run_web, daemon=True).start()
 
-# --- CONFIGURATION ---
+# --- ⚙️ CONFIGURATION (Tumhara Personal Data) ---
+# ✅ Tumhara Personal API ID & Hash (Jo tumne screenshot me dikhaya tha)
 API_ID = 37314366
 API_HASH = "bd4c934697e7e91942ac911a5a287b46"
 
-# 🆕 UPDATED SESSION STRING (Jo aapne abhi di hai)
-SESSION_STRING = "AQI5Xz4APPbOdae-435AVGbPqGGDaPGinV-vIC7v9vUByehg2WV7DiO-IJ3PZqaA4iQGsvw3lik-Tbt8TrjtNPuTfP0Ua3pfKsdPz0UQe1GgyUu8qWVn2CqqWFiozyTEqPU0zHT1N44E5nY3FHGDPeuNDMk1lQN89e91yIZvhV0zb6f3Z9cZdx-Y8Ow6o3XL-P21lMfAcYuC6BIudvGpY65P3RW9mf_XxtwbAUhB7Yhb25xfmgWZnj36Qlu0orFlYPioyKwcps5LuVfuLUpHfYJKCuz3tRptFCztSU43WXkyBBFhsj2ytL2cc7qJSk8dv5Wn5wd2jA5hTDwcNQBIQ4612jxwCAAAAAHkD08bAA"
+# ✅ TUMHARI NAYI SESSION STRING (Jo abhi tumne di hai)
+SESSION_STRING = "BQI5Xz4An2WuCEQRMWxeNrgNWxu9frIIFgyXv3q4XdcTjZOWMNB7Vx4j8ICWpzESYI2Y4kPSVZFq6WxpdstQtZAn9fP7HQ-1QVN465fc4NkSJMN4LXduCATFzg4G4IblvT5FQNbQ4D3e7kQ6JYxrO6og0heZ71vhdDDLg6wF2hrg29zP8-qB2-ftUIJ1FnzoLe2v78fIVHVUFZupB4UEc-1l7TYoJyyMq0AKsh03phWZPEPxR0liZ94gDs8KKFqVX7exCX1S47D61fFAQ7Tgl9tcYkQn3U-YpuUG74FatVM3j693jQZUmemq3EHGIfV7JdhU517EyY7M-rKFQa-Qbq77v_QKLwAAAAFJSgVkAA"
 
 TARGET_BOT_USERNAME = "Zeroo_osint_bot" 
 SEARCH_GROUP_ID = -1003322045321
@@ -51,11 +50,11 @@ SEARCH_GROUP_USERNAME = "f4x_empirebot"
 ALLOWED_GROUPS = [-1003387459132]
 FSUB_CHANNELS = [{"id": -1003892920891, "link": "https://t.me/+Om1HMs2QTHk1N2Zh"}]
 
-# 👑 OWNER SETTINGS
+# 👑 OWNER SETTINGS (Sirf Tumhare Liye)
 OWNER_ID = 8081343902
 STICKER_FILE = "anim_sticker.txt"
 
-app = Client("anysnap_secure_bot", api_id=API_ID, api_hash=API_HASH, session_string=SESSION_STRING)
+app = Client("magma_final_bot", api_id=API_ID, api_hash=API_HASH, session_string=SESSION_STRING)
 
 # --- 👋 START COMMAND ---
 @app.on_message(filters.command("start"))
@@ -104,7 +103,7 @@ async def reset_animation(client, message):
         os.remove(STICKER_FILE)
     await message.reply("🔄 **Reset!** Normal text wapas aa gaya.")
 
-# --- 🧠 BROKEN DATA EXTRACTOR ---
+# --- 🧠 BROKEN DATA EXTRACTOR (Jugaad Logic) ---
 def extract_broken_data(text):
     results = []
     try:
@@ -152,7 +151,7 @@ async def process_request(client, message):
     query_val = message.command[1]
     user_id = message.from_user.id
     
-    # Animation Check
+    # 🎭 Animation Logic
     sticker_id = get_waiting_sticker()
     if user_id == OWNER_ID and sticker_id:
         status_msg = await message.reply_sticker(sticker_id)
@@ -166,7 +165,7 @@ async def process_request(client, message):
         sent_req = await client.send_message(chat.id, f"/num {query_val}")
         target_response = None
 
-        # 60 Sec Wait
+        # 60s Smart Wait Loop
         for _ in range(30): 
             await asyncio.sleep(2) 
             async for log in client.get_chat_history(chat.id, limit=10):
@@ -201,13 +200,13 @@ async def process_request(client, message):
             f"👊 **MADE BY @MAGMAxRICH**"
         )
 
-        await status_msg.delete()
+        await status_msg.delete() # Sticker hatao
         final_msg = await message.reply_text(
             output_ui,
             reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("📋 COPY CODE", switch_inline_query_current_chat=json_box)]])
         )
 
-        # 30 Sec Auto Delete
+        # ⏱️ 30s Auto Delete
         await asyncio.sleep(30)
         await final_msg.delete()
 
@@ -215,5 +214,5 @@ async def process_request(client, message):
         await status_msg.delete()
         await message.reply_text(f"❌ **Error:** {str(e)}")
 
-print("🚀 Bot Live: New Session + Render Fix Applied!")
+print("🚀 Bot Live: New Personal Session & Render Fix Applied!")
 app.run()
