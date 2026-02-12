@@ -5,8 +5,8 @@ import re
 import threading
 import sys
 
-# --- 🛠️ MAGIC FIX FOR PYTHON 3.14 RENDER ERROR ---
-# Ye hissa zabardasti loop create karega taaki bot crash na ho
+# --- 🛠️ CRITICAL FIX FOR RENDER PYTHON 3.14 CRASH ---
+# Ye code sabse upar hona zaroori hai. Ye zabardasti Event Loop banayega.
 try:
     import uvloop
     asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
@@ -14,11 +14,13 @@ except ImportError:
     pass
 
 try:
+    # Check agar loop pehle se hai
     asyncio.get_running_loop()
 except RuntimeError:
+    # Agar nahi hai (Render error), toh naya banao
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
-# ---------------------------------------------------
+# -------------------------------------------------------
 
 from flask import Flask
 from pyrogram import Client, filters, enums
@@ -38,10 +40,11 @@ threading.Thread(target=run_web, daemon=True).start()
 # --- CONFIGURATION ---
 API_ID = 37314366
 API_HASH = "bd4c934697e7e91942ac911a5a287b46"
-# Aapki Latest Session String
-SESSION_STRING = "BQI5Xz4AxRpdNsM_yTcNKgh5Aq2isniSQJVla3JunBAXpNsQMNaMwupoOzTw_bIuU_gjtkF6-bP0DKmnmh1Z8yDRW0CbFTFVKi-LUN3d31wrr-BhaiX-GN62C1vBptlDsFQ3wZIj3GMenQhpLvMwtF3Pxd0dPLWoxx9DP2x44SnHr98rbkXxyWe1nNA5nSDb28DXYAJwkPJMVS7RiLrWo1zGkw2uvJE4H8ZPH5GCDpIcYwoeiAArAV3tlxIhkJ9rn_Rickywvt03Yi1uad4MOP4_7_9wJyau7a1CFXm75MQ_GNZX3lDOFVG2ftc12LPoCM3LTlKWCgpJ9ItN-2OpwssQ7prdKAAAAAFJSgVkAA"
 
-TARGET_BOT_USERNAME = "Zeroo_osint_bot"
+# 🆕 UPDATED SESSION STRING (Jo aapne abhi di hai)
+SESSION_STRING = "BQI5Xz4AWyh9OqVI6yIqjXjt0e1TsQu6uIYfZFMmyyJJNEg6VV7g6cCCrBFRGvVXQa7LH320jGw9sej6XNke-FUABxjxnIh_XiFVAQTn8pzDS3Usy2M1SbhByJCqhOST7OkJVAQhmgxBC1M55lCtsjKgt3NeFhzEaNUg19t7IiLv-3HgyyaxKIK_SWdimn86mc3DIBWorHOMk48YYnt7lwRON0cTk6hm3UU18tpyVhhK2VHnswLFH3-aztTKQVyMnWvB7Luj483SVJccqNZJp3RukKb3M9AvoDfdLHhRULrtIKf3K9zvQm0vBVZJ5Tkkivp8X_gNh1iDNaxGNJRNMFDMj_O42AAAAAFJSgVkAA"
+
+TARGET_BOT_USERNAME = "Zeroo_osint_bot" 
 SEARCH_GROUP_ID = -1003322045321
 SEARCH_GROUP_USERNAME = "f4x_empirebot"
 
@@ -139,7 +142,6 @@ def extract_broken_data(text):
 # --- MAIN LOGIC ---
 @app.on_message(filters.command(["num", "aadhaar", "vehicle", "trace"]) & (filters.private | filters.chat(ALLOWED_GROUPS)))
 async def process_request(client, message):
-    # FSub Check
     for ch in FSUB_CHANNELS:
         try: await client.get_chat_member(ch["id"], message.from_user.id)
         except: return await message.reply_text(f"🚫 **Access Denied!**\nJoin: {ch['link']}")
@@ -150,7 +152,7 @@ async def process_request(client, message):
     query_val = message.command[1]
     user_id = message.from_user.id
     
-    # Animation logic
+    # Animation Check
     sticker_id = get_waiting_sticker()
     if user_id == OWNER_ID and sticker_id:
         status_msg = await message.reply_sticker(sticker_id)
@@ -164,7 +166,7 @@ async def process_request(client, message):
         sent_req = await client.send_message(chat.id, f"/num {query_val}")
         target_response = None
 
-        # 60s Wait loop
+        # 60 Sec Wait
         for _ in range(30): 
             await asyncio.sleep(2) 
             async for log in client.get_chat_history(chat.id, limit=10):
@@ -205,6 +207,7 @@ async def process_request(client, message):
             reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("📋 COPY CODE", switch_inline_query_current_chat=json_box)]])
         )
 
+        # 30 Sec Auto Delete
         await asyncio.sleep(30)
         await final_msg.delete()
 
@@ -212,5 +215,5 @@ async def process_request(client, message):
         await status_msg.delete()
         await message.reply_text(f"❌ **Error:** {str(e)}")
 
-print("🚀 Bot Live: Forced Event Loop Patch Applied!")
+print("🚀 Bot Live: New Session + Render Fix Applied!")
 app.run()
